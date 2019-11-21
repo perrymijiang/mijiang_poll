@@ -1,5 +1,6 @@
 from django.shortcuts import render, render_to_response
-from django.views.generic import ListView, DetailView, RedirectView,CreateView, UpdateView
+from django.views.generic import ListView, DetailView, RedirectView,CreateView, UpdateView, DeleteView
+from django.urls import reverse
 from .models import *
 
 # Create your views here.
@@ -27,11 +28,47 @@ class PollVote(RedirectView):
         return "/poll/{}/".format(opt.poll_id)
 
 class PollCreate(CreateView):
-    model = Poll
+    model = poll
     fields = ['subject']
     success_url = "/poll/"
 
 class PollUpdate(UpdateView):
-    model = Poll
-    field = ['subject']
+    model = poll
+    fields = ['subject']
     success_url = "/poll/"
+
+class OptionCreate(CreateView):
+    model = Option
+    fields = ['title']
+    template_name = 'default/poll_form.html'
+    
+    def get_success_url(self):
+        #return "/poll/" + int(self.kwargs['pid']) + '/'
+        #return "/poll/{}/".format(self.kwargs['pid'])
+        #return reverse('poll_view', kwargs={'pk': self.kwargs['pid']})
+        return reverse('poll_view', args=[self.kwargs['pid']])
+
+def form_valid(self, form):
+    form.instance.poll_id = self.kwargs['pid']
+    return super().form_valid(form)
+    
+class OptionEdit(UpdateView):
+    model = Option
+    fields = ['title']
+    template_name = 'default/poll_form.html'
+
+    def get_success_url(self):
+        return reverse('poll_view', args=[self.object.poll_id])
+
+class OptionDelete(DeleteView):
+    model = Option
+    template_name = 'confirm_delete.html'
+    def get_success_url(self):
+        return reverse('poll_view', args=[self.object.poll_id])
+
+class PollDelete(DeleteView):
+    model = poll
+    template_name = 'confirm_delete.html'
+    def get_success_url(self):
+        Option.objects.filter(poll_id=self.object.id).delete()
+        return reverse('Poll_list')
